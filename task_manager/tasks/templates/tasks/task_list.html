@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои задачи{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Мои задачи</h1>
+    <a href="{% url 'task_create' %}" class="btn btn-primary">+ Создать задачу</a>
+</div>
+
+<form method="get" class="row g-3 mb-4">
+    <!-- СТРОКА 1: ФИЛЬТРЫ -->
+    <div class="col-md-3">
+        <label class="form-label">Статус</label>
+        <select name="status" class="form-select">
+            <option value="">Все статусы</option>
+            <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>
+                В ожидании
+            </option>
+            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>
+                Выполнено
+            </option>
+        </select>
+    </div>
+    
+    <div class="col-md-3">
+        <label class="form-label">Категория</label>
+        <select name="category" class="form-select">
+            <option value="">Все категории</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}" 
+                    {% if request.GET.category and request.GET.category == category.id|stringformat:"i" %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="col-md-3">
+        <label class="form-label">Приоритет</label>
+        <select name="priority" class="form-select">
+            <option value="">Все приоритеты</option>
+            <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>
+                🔴 Высокий
+            </option>
+            <option value="medium" {% if request.GET.priority == 'medium' %}selected{% endif %}>
+                🟡 Средний
+            </option>
+            <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>
+                ⚪ Низкий
+            </option>
+        </select>
+    </div>
+    
+    <div class="col-md-3 d-flex align-items-end">
+        <div class="w-100">
+            <button type="submit" class="btn btn-primary w-100">Применить фильтры</button>
+        </div>
+    </div>
+    
+    <div class="col-md-12 mt-3">
+        <div class="input-group">
+            <input type="text" 
+                   name="search" 
+                   class="form-control" 
+                   placeholder="🔍 Поиск по названию или описанию задачи..."
+                   value="{{ request.GET.search }}">
+            <button class="btn btn-outline-secondary" type="submit">
+                Найти
+            </button>
+            {% if request.GET.search %}
+                <a href="{% url 'task_list' %}" class="btn btn-outline-danger">
+                    ✕ Очистить поиск
+                </a>
+            {% endif %}
+        </div>
+        {% if request.GET.search %}
+            <small class="text-muted mt-1 d-block">
+                Найдено задач: {{ tasks|length }}
+            </small>
+        {% endif %}
+    </div>
+    
+    <!-- КНОПКА СБРОСА ВСЕХ ФИЛЬТРОВ -->
+    {% if request.GET.status or request.GET.category or request.GET.priority or request.GET.search %}
+    <div class="col-12 mt-2">
+        <a href="{% url 'task_list' %}" class="btn btn-outline-secondary btn-sm">
+            ✕ Сбросить все фильтры
+        </a>
+    </div>
+    {% endif %}
+</form>
+
+{% if tasks %}
+    <div class="list-group">
+        {% for task in tasks %}
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1 {% if task.status == 'completed' %}text-muted text-decoration-line-through{% endif %}">
+                            {{ task.title }}
+                        </h5>
+                        <p class="mb-1 text-muted">{{ task.description|truncatechars:100 }}</p>
+                        <small>
+                            {% if task.category %}
+                                <span class="badge bg-info">{{ task.category.name }}</span>
+                            {% endif %}
+                            <span class="badge bg-{% if task.status == 'completed' %}success{% else %}warning{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                            <span class="badge bg-{% if task.priority == 'high' %}danger{% elif task.priority == 'medium' %}warning{% else %}secondary{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                            {% if task.is_overdue %}
+                                <span class="badge bg-danger">Просрочено</span>
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <div class="btn-group">
+                        {% if task.status != 'completed' %}
+                            <a href="{% url 'task_complete' task.pk %}" class="btn btn-sm btn-success">
+                                ✓
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'task_update' task.pk %}" class="btn btn-sm btn-outline-secondary">
+                            ✏️
+                        </a>
+                        <a href="{% url 'task_delete' task.pk %}" class="btn btn-sm btn-outline-danger">
+                            🗑️
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Создано: {{ task.created_at|date:"d.m.Y H:i" }}
+                        {% if task.deadline %}
+                            • Дедлайн: {{ task.deadline|date:"d.m.Y H:i" }}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        ← Назад
+                    </a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        Вперед →
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+{% else %}
+    <div class="alert alert-info text-center">
+        {% if request.GET.status or request.GET.category or request.GET.priority or request.GET.search %}
+            <h4>Задачи не найдены</h4>
+            <p>Попробуйте изменить параметры поиска или фильтров.</p>
+            <a href="{% url 'task_list' %}" class="btn btn-primary">Показать все задачи</a>
+        {% else %}
+            <h4>Задач пока нет!</h4>
+            <p>Создайте свою первую задачу.</p>
+            <a href="{% url 'task_create' %}" class="btn btn-primary">Создать задачу</a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

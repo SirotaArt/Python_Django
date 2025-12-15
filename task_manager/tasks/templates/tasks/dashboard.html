@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Дашборд - Task Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>📊 Дашборд</h1>
+        <p class="text-muted">Общая статистика ваших задач</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body text-center">
+                <h1 class="display-4">{{ total_tasks }}</h1>
+                <p class="card-text">Всего задач</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body text-center">
+                <h1 class="display-4">{{ completed_tasks }}</h1>
+                <p class="card-text">Выполнено</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body text-center">
+                <h1 class="display-4">{{ pending_tasks }}</h1>
+                <p class="card-text">В ожидании</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-danger h-100">
+            <div class="card-body text-center">
+                <h1 class="display-4">{{ overdue_tasks }}</h1>
+                <p class="card-text">Просрочено</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📈 Прогресс выполнения</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Выполнено: {{ completed_tasks }} из {{ total_tasks }}</span>
+                    <span class="fw-bold">{{ completion_rate }}%</span>
+                </div>
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar progress-bar-striped" 
+                         role="progressbar" 
+                         style="width: {{ completion_rate }}%"
+                         aria-valuenow="{{ completion_rate }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        {{ completion_rate }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">🚨 Срочные задачи</h5>
+            </div>
+            <div class="card-body text-center">
+                <h1 class="display-2 text-danger">{{ high_priority_tasks }}</h1>
+                <p class="card-text">задач с высоким приоритетом</p>
+                {% if high_priority_tasks > 0 %}
+                    <a href="{% url 'task_list' %}?priority=high" class="btn btn-danger btn-sm">
+                        Посмотреть все
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🕒 Последние задачи</h5>
+                <a href="{% url 'task_list' %}" class="btn btn-sm btn-outline-primary">
+                    Все задачи →
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_tasks %}
+                    <div class="list-group">
+                        {% for task in recent_tasks %}
+                            <a href="{% url 'task_update' task.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ task.title }}</h6>
+                                    <small class="text-muted">{{ task.created_at|date:"d.m.Y" }}</small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <small class="me-2">
+                                        <span class="badge bg-{% if task.status == 'completed' %}success{% else %}warning{% endif %}">
+                                            {{ task.get_status_display }}
+                                        </span>
+                                    </small>
+                                    <small class="me-2">
+                                        <span class="badge bg-{% if task.priority == 'high' %}danger{% elif task.priority == 'medium' %}warning{% else %}secondary{% endif %}">
+                                            {{ task.get_priority_display }}
+                                        </span>
+                                    </small>
+                                    {% if task.is_overdue %}
+                                        <small><span class="badge bg-danger">Просрочено</span></small>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">Задач пока нет</p>
+                        <a href="{% url 'task_create' %}" class="btn btn-primary">Создать первую задачу</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
